@@ -1,0 +1,25 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import authRoutes from './routes/auth.js';
+import carRoutes from './routes/cars.js';
+import bookingRoutes from './routes/bookings.js';
+import adminRoutes from './routes/admin.js';
+import { notFound, errorHandler } from './middleware/errors.js';
+
+const app = express();
+app.disable('x-powered-by');
+app.use(helmet({crossOriginResourcePolicy:{policy:'cross-origin'}}));
+const allowed = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(s=>s.trim());
+app.use(cors({origin(origin,callback){if(!origin||allowed.includes(origin))return callback(null,true);return callback(new Error('Origin not allowed by CORS.'));}}));
+app.use(express.json({limit:'1mb'}));
+app.use('/api/auth',rateLimit({windowMs:15*60*1000,limit:100,standardHeaders:true,legacyHeaders:false}));
+app.get('/api/health',(req,res)=>res.json({status:'ok',service:'DriveEase API'}));
+app.use('/api/auth',authRoutes);
+app.use('/api/cars',carRoutes);
+app.use('/api/bookings',bookingRoutes);
+app.use('/api/admin',adminRoutes);
+app.use(notFound);
+app.use(errorHandler);
+export default app;
